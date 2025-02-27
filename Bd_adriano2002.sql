@@ -81,3 +81,6 @@ create table curso
     alter table AUTORLIVRO add CONSTRAINT PK_AUTORLIVRO PRIMARY KEY (CODAUTOR,CODIGOLIVRO);
     
     
+    
+    
+    
