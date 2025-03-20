@@ -90,7 +90,6 @@ WHERE cidade = 'Sorocaba'
 WITH CHECK OPTION;
 
 SELECT * FROM pacsor;
-
 SELECT * FROM paciente;
 
 SELECT nompaciente, datanasc FROM pacsor
@@ -125,4 +124,28 @@ AS SELECT p.codpaciente, p.nompaciente, c.codconsulta
 FROM paciente p, consulta c
 WHERE c.codpaciente = p.codpaciente;
 
+-- ou
+
+CREATE OR REPLACE VIEW consulta_pac
+AS SELECT p.codpaciente, p.nompaciente, c.codconsulta
+FROM paciente p INNER JOIN consulta c
+ON c.codpaciente = p.codpaciente;
+
+-- visão 4
+
+CREATE OR REPLACE VIEW salario_liq
+AS SELECT codmedico, (valconsulta * 0.75) AS ValorLiq, 'medico bom' AS avaliacao
+FROM consulta;
+
+SELECT valorliq FROM salario_liq;
+
 SELECT * FROM consulta_pac;
+
+-- visão 5
+
+CREATE OR REPLACE VIEW totalmed
+AS SELECT codmedico, COUNT(*) AS  totalconsultas
+FROM consulta
+GROUP BY codmedico;
+
+SELECT * FROM totalmed ORDER BY 2;
