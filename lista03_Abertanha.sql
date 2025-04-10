@@ -73,3 +73,11 @@ set valor_unit = valor_unit * 0.80
 where codproduto not in (select codproduto from tb_item_pedido);
 
 rollback;
+
+-- variação do exercicio 9
+
+update tb_produto
+set valor_unit = valor_unit * 0.80
+where codproduto not in (select codproduto from tb_item_pedido inner join tb_pedido
+                            on tb_pedido.numpedido = tb_item_pedido.numpedido
+                            where to_char(prazo_entrega, 'yyyy') = '2025');
