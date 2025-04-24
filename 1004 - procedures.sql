@@ -92,6 +92,9 @@ Begin
 
 Exception
     when no_data_found then
-                                                                     -- ||concatenação de string com parâmetros
         insert into tab_erro values (sysdate, 'Produto não encontrado: '||Pcodprod);
 end;
+
+
+exec SP_atualizaPreco(80);
+select * from tab_erro;
