@@ -161,3 +161,118 @@ MODIFY (
     campo1 VARCHAR2(100),
     campo2 VARCHAR2(100)
 );
+
+------------------- Exercicio 3 -------------------
+
+CREATE OR REPLACE PROCEDURE DELETAR_PRODUTO_SEM_PEDIDO (p_cod_produto NUMBER)
+AS
+    v_descricao produto.DESCRICAO%TYPE;
+    v_pedidos_existem NUMBER;
+BEGIN
+
+    BEGIN
+        SELECT DESCRICAO INTO v_descricao
+        FROM produto
+        WHERE cod_produto = p_cod_produto;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            INSERT INTO TAB_ERRO (dataerro, campo1, campo2)
+            VALUES (SYSDATE, 'Código do produto inexistente: ' || p_cod_produto,'. Descrição não disponível.');
+            -- Encerra o procedimento, pois o produto não existe.
+            RETURN;
+    END;
+    
+    -- log de inicio da operação
+    INSERT INTO TABLOG (datalog, campo1, campo2)
+    VALUES(
+        sysdate,
+        '1 - Inicio da operação',
+        'Produto: ' || p_cod_produto);
+
+    -- Verifica se há pedidos para o produto
+    SELECT COUNT(*) INTO v_pedidos_existem
+    FROM Item_pedido
+    WHERE Cod_produto = p_cod_produto;
+
+
+    IF v_pedidos_existem = 0 THEN       
+        --Log de anuncio da exclusao
+        INSERT INTO TAB_ERRO (dataerro, campo1, campo2)
+        VALUES (SYSDATE,
+                'Exclusão - Código: ' || p_cod_produto,
+                'Descrição: ' || v_descricao || ' | Usuário: ' || USER);
+        
+        --deletando o produto sem pedidos
+        DELETE FROM produto
+        WHERE cod_produto = p_cod_produto;
+        
+        --log de confirmação da exclusão do produto sem pedido
+        INSERT INTO TABLOG (datalog, campo1, campo2)
+        VALUES (SYSDATE, 'Sucesso - Produto excluído', 'Produto: ' || p_cod_produto);
+    ELSE 
+        RAISE_APPLICATION_ERROR(
+            -20000,
+            'Erro, produto com pedidos associaodos.Código: ' || p_cod_produto);
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        DECLARE
+            v_cod_erro NUMBER := SQLCODE;
+            v_msg_erro VARCHAR2(100) := SUBSTR(SQLERRM, 1, 100);
+        BEGIN
+            INSERT INTO TAB_ERRO(dataerro, campo1, campo2)
+            VALUES (SYSDATE,
+                    'Erro inesperado: (' || v_cod_erro || ')',
+                    SUBSTR('Msg: ' || v_msg_erro || ' | Ao processar produto: ' || p_cod_produto, 1, 100)
+                   );
+            RAISE;
+        END; 
+END DELETAR_PRODUTO_SEM_PEDIDO;
+
+------------------- Exercicio 4 -------------------
+CREATE OR REPLACE PROCEDURE ATUALIZA_PRECO_POR_UNIDADE (p_unidade VARCHAR2)
+AS
+    v_linhas_afetadas NUMBER;
+BEGIN
+
+    BEGIN
+        SELECT unidade INTO v_unidade_teste -- v_unidade_teste pode nem ser necessária se você só quer testar a existência
+        FROM produto
+        WHERE unidade = p_unidade
+          AND ROWNUM = 1; -- Garante que apenas uma linha seja buscada
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            INSERT INTO TAB_ERRO (dataerro, campo1, campo2)
+            VALUES (SYSDATE, 'Unidade inexistente na tabela Produto: ' || p_unidade, 'Nenhum produto encontrado com esta unidade.');
+            RETURN;
+    END;
+
+    -- log de inicio da operação
+    INSERT INTO TABLOG (datalog, campo1, campo2)
+    VALUES (SYSDATE, 'Inicio Atualizar_preco_por_unidade','Unidade: ' || p_unidade);
+
+    --Atualiza o valor_unitario em 10% para os produtos com a unidade parâmetro
+    UPDATE PRODUTO
+    SET valor_unitario = valor_unitario * 1.1
+    WHERE unidade = p_unidade;
+
+    -- captura o número de linhas que foram afetadas pelo UPDATE
+    v_linhas_afetadas := SQL%ROWCOUNT;
+
+    -- Log dos requisitos do enunciado
+    INSERT INTO TABLOG (datalog, campo1, campo2)
+    VALUES (SYSDATE,
+            'Produtos com preço modificado= ',
+            TO_CHAR(v_linhas_afetadas));
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+    INSERT INTO TabLog (datalog, campo1, campo2)
+        VALUES (SYSDATE,
+                'ERRO em ATUALIZAR_PRECO_POR_UNIDADE',
+                SUBSTR('Unidade: ' || p_unidade || ' - Erro: ' || SQLERRM, 1, 60)
+               );
+        RAISE;
+END ATUALIZAR_PRECO_POR_UNIDADE;
